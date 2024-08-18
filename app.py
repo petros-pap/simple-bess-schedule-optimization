@@ -28,7 +28,9 @@ def schedule():
                                           soc_min=data.get("soc_min"),
                                           soc_target=data.get("soc_target"),
                                           power_capacity=data.get("power_capacity"),
-                                          conversion_efficiency=data.get("conversion_efficiency", 1))
+                                          storage_capacity=data.get("storage_capacity", 100.0),
+                                          conversion_efficiency=data.get("conversion_efficiency", 1.0),
+                                          top_up=data.get("top_up", False))
 
         # Return the optimization results as JSON
         return json.dumps({

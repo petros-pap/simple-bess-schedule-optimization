@@ -34,7 +34,9 @@ def schedule_simple_battery(
         soc_min: float,
         soc_target: float,
         power_capacity: float,
-        conversion_efficiency: float = 1,
+        storage_capacity: float = 100.0,
+        conversion_efficiency: float = 1.0,
+        top_up: bool = False
 ) -> tuple[float, list[float]]:
     r"""
     Schedule a simplistic battery against given consumption and production prices.
@@ -67,7 +69,9 @@ def schedule_simple_battery(
     :param soc_min:                 Minimum state of charge.
     :param soc_target:              Target state of charge at the end of the schedule.
     :param power_capacity:          Power capacity for both charging and discharging.
+    :param storage_capacity:        Storage capacity of the battery.
     :param conversion_efficiency:   Conversion efficiency from power to SoC and vice versa.
+    :param top_up:                  Tops-up (supercharges) the battery at the end of the schedule, setting the soc_target equal to the storage_capacity.
     """
 
     # Check inputs for infeasibilities
@@ -89,12 +93,19 @@ def schedule_simple_battery(
         raise ValueError("Starting SoC is outside of acceptable limits")
     if abs(soc_target - soc_start) > prices.shape[0] * power_capacity:
         raise ValueError("There is not enough time/power to reach the target SoC")
+    if soc_target > storage_capacity:
+        raise ValueError("Target SoC must not exceed the storage capacity")
+    if soc_max > storage_capacity:
+        raise ValueError("Max SoC must not exceed the storage capacity")
+
+    soc_target = storage_capacity if top_up else soc_target
 
     model = ConcreteModel()
     model.j = RangeSet(0, len(prices.index.to_pydatetime()) - 1, doc="Set of datetimes")
     model.ems_power = Var(model.j, domain=Reals, initialize=0)
     model.device_power_down = Var(model.j, domain=NonPositiveReals, initialize=0)
     model.device_power_up = Var(model.j, domain=NonNegativeReals, initialize=0)
+    model.supercharge_penalty = Var(model.j, domain=NonNegativeReals, initialize=0)
 
     def price_up_select(m, j):
         return prices["consumption"].iloc[j]
@@ -126,16 +137,12 @@ def schedule_simple_battery(
 
         # Apply soc target
         if j == len(prices) - 1:
-            return (
-                soc_target,
-                soc_start + sum(stock_changes),
-                soc_target,
-            )
+            return soc_start + sum(stock_changes) == soc_target
 
         # Stay within SoC bounds
         return (
             m.device_min[j],
-            soc_start + sum(stock_changes),
+            soc_start + sum(stock_changes) - m.supercharge_penalty[j],
             m.device_max[j],
         )
 
@@ -157,20 +164,25 @@ def schedule_simple_battery(
         for j in m.j:
             costs += m.device_power_down[j] * m.down_price[j]
             costs += m.device_power_up[j] * m.up_price[j]
+            costs += m.supercharge_penalty[j] * 100
         return costs
 
     model.costs = Objective(rule=cost_function, sense=minimize)
     solver = SolverFactory("cbc")
     results = solver.solve(model, load_solutions=False)
+
     if results.solver.termination_condition == 'infeasible':
         raise ValueError("The optimization model is infeasible")
+    if results.solver.termination_condition == 'unbounded':
+        raise ValueError("The optimization model is unbounded")
     print(results.solver.termination_condition)
 
     # Load the results only if a feasible solution has been found
     if len(results.solution) > 0:
         model.solutions.load_from(results)
 
-    planned_costs = float(value(model.costs))
+    planned_costs = float(value(sum([model.device_power_down[j] * model.down_price[j] +
+                                     model.device_power_up[j] * model.up_price[j] for j in model.j])))
     planned_device_power = [float(model.ems_power[j].value) for j in model.j]
 
     return planned_costs, planned_device_power

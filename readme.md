@@ -6,6 +6,7 @@ An optimization framework written in Python using Pyomo for scheduling a simple 
 - [Installation](#installation)
 - [Input Data](#input-data)
 - [Usage](#usage)
+- [Examples](#examples)
 - [Dependencies](#dependencies)
 
 
@@ -101,6 +102,24 @@ Otherwise, the output will have the following structure:
 }
 ```
 
+
+## Examples
+
+### Case 1:
+
+This is the base case where the "storage-capacity" has no effect in the optimization because the SoC is bounded by the "soc-max" parameter. An example is provided here:
+
+```python examples/default_example_case_1.py```
+
+### Case 2:
+
+In this case, the user has the option to "supercharge" the battery at the last step of the optimization horizon. This is possible by setting the parameter "top-up" to `True`. 
+As batteries degrade faster when their full storage capacity is reached, the optimizer will try to avoid supercharging the battery during other periods, unless necessary.
+An example with this implementation is provided here:
+
+```python examples/default_example_case_2.py```
+
+
 ## Dependencies
 
 - Python v3.12
@@ -112,3 +131,4 @@ Otherwise, the output will have the following structure:
 Install the dependencies using:
 ```bash
 pip install -r requirements.txt
+```

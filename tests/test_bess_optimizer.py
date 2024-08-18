@@ -94,6 +94,35 @@ class TestOptimizerInputs(unittest.TestCase):
         except ValueError as e:
             assert e.__str__() == "There is not enough time/power to reach the target SoC"
 
+    def test_storage_capacity(self):
+        try:
+            schedule_simple_battery(
+                prices=self.prices,
+                soc_start=self.soc_start,
+                soc_max=self.soc_max,
+                soc_min=self.soc_min,
+                soc_target=self.soc_target+10,  # This should trigger a value error
+                power_capacity=self.power_capacity,
+                storage_capacity=self.soc_target
+            )
+
+        except ValueError as e:
+            assert e.__str__() == "Target SoC must not exceed the storage capacity"
+
+        try:
+            schedule_simple_battery(
+                prices=self.prices,
+                soc_start=self.soc_start,
+                soc_max=self.soc_target+10,  # This should trigger a value error
+                soc_min=self.soc_min,
+                soc_target=self.soc_target,
+                power_capacity=self.power_capacity,
+                storage_capacity=self.soc_target
+            )
+
+        except ValueError as e:
+            assert e.__str__() == "Max SoC must not exceed the storage capacity"
+
 
 if __name__ == '__main__':
     unittest.main()
