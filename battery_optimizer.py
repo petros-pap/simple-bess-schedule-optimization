@@ -13,7 +13,7 @@ from pyomo.core import (
     Binary,
     Constraint,
     Objective,
-    minimize,
+    minimize
 )
 from pyomo.environ import value
 from pyomo.opt import SolverFactory
@@ -28,13 +28,13 @@ def compute_soc_schedule(power_schedule: list[float], soc_start: float) -> list[
 
 
 def schedule_simple_battery(
-    prices: pd.DataFrame,
-    soc_start: float,
-    soc_max: float,
-    soc_min: float,
-    soc_target: float,
-    power_capacity: float,
-    conversion_efficiency: float = 1,
+        prices: pd.DataFrame,
+        soc_start: float,
+        soc_max: float,
+        soc_min: float,
+        soc_target: float,
+        power_capacity: float,
+        conversion_efficiency: float = 1,
 ) -> tuple[float, list[float]]:
     r"""
     Schedule a simplistic battery against given consumption and production prices.
@@ -69,6 +69,27 @@ def schedule_simple_battery(
     :param power_capacity:          Power capacity for both charging and discharging.
     :param conversion_efficiency:   Conversion efficiency from power to SoC and vice versa.
     """
+
+    # Check inputs for infeasibilities
+    if (
+            (prices < 0).any().any() or
+            soc_start < 0 or
+            soc_max < 0 or
+            soc_min < 0 or
+            soc_target < 0 or
+            power_capacity < 0 or
+            conversion_efficiency < 0
+    ):
+        raise ValueError("Numeric parameters must have non-negative values")
+    if conversion_efficiency > 1:
+        raise ValueError("Conversion efficiency must be less than or equal to 1")
+    if soc_max <= soc_min:
+        raise ValueError("SoC max must be greater than SoC min")
+    if soc_start < soc_min or soc_start > soc_max:  # TODO: review if this constraint can be relaxed in the model
+        raise ValueError("Starting SoC is outside of acceptable limits")
+    if abs(soc_target - soc_start) > prices.shape[0] * power_capacity:
+        raise ValueError("There is not enough time/power to reach the target SoC")
+
     model = ConcreteModel()
     model.j = RangeSet(0, len(prices.index.to_pydatetime()) - 1, doc="Set of datetimes")
     model.ems_power = Var(model.j, domain=Reals, initialize=0)
@@ -141,6 +162,8 @@ def schedule_simple_battery(
     model.costs = Objective(rule=cost_function, sense=minimize)
     solver = SolverFactory("cbc")
     results = solver.solve(model, load_solutions=False)
+    if results.solver.termination_condition == 'infeasible':
+        raise ValueError("The optimization model is infeasible")
     print(results.solver.termination_condition)
 
     # Load the results only if a feasible solution has been found
@@ -151,7 +174,3 @@ def schedule_simple_battery(
     planned_device_power = [float(model.ems_power[j].value) for j in model.j]
 
     return planned_costs, planned_device_power
-
-
-
-
