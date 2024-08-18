@@ -6,7 +6,6 @@ An optimization framework written in Python using Pyomo for scheduling a simple 
 - [Installation](#installation)
 - [Input Data](#input-data)
 - [Usage](#usage)
-- [Examples](#examples)
 - [Dependencies](#dependencies)
 
 
@@ -43,6 +42,11 @@ An optimization framework written in Python using Pyomo for scheduling a simple 
 ## Usage
 
 ### API calls
+
+First, activate the API in localhost:
+```bash
+python app.py
+```
 
 Below are examples to use the optimizer through API calls:
 
