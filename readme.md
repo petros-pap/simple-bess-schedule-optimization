@@ -66,6 +66,40 @@ The output will be a CSV file containing the optimal charge/discharge schedule w
 
 Example scripts and data files are provided in the `examples/` directory to demonstrate typical use cases and how to interpret the results.
 
+### API calls
+
+Below are some possible ways to test the API calls:
+
+- Through CMD:
+   ```bash
+   curl -X GET -H "Content-Type: application/json" -d '{"prices": {"production": {"2000-01-01T00:00:00+0100": 7, "2000-01-01T01:00:00+0100": 2, "2000-01-01T02:00:00+0100": 3, "2000-01-01T03:00:00+0100": 4}, "consumption": {"2000-01-01T00:00:00+0100": 8, "2000-01-01T01:00:00+0100": 3, "2000-01-01T02:00:00+0100": 4, "2000-01-01T03:00:00+0100": 5}}, "soc_start": 20.0, "soc_max": 90.0, "soc_min": 10.0, "soc_target": 40.0, "power_capacity": 10.0}' http://127.0.0.1:5000/schedule
+   ```
+- With python requests: run `examples/example_app.py`
+- With any REST API development tool (e.g. [Insomnia](https://insomnia.rest/)):
+  - Method: `GET` 
+  - URL: http://127.0.0.1:5000/schedule
+  - Body: ```{
+  "prices": {
+    "production": {
+      "2000-01-01T00:00:00+0100": 7,
+      "2000-01-01T01:00:00+0100": 2,
+      "2000-01-01T02:00:00+0100": 3,
+      "2000-01-01T03:00:00+0100": 4
+    },
+    "consumption": {
+      "2000-01-01T00:00:00+0100": 8,
+      "2000-01-01T01:00:00+0100": 3,
+      "2000-01-01T02:00:00+0100": 4,
+      "2000-01-01T03:00:00+0100": 5
+    }
+  },
+  "soc_start": 20,
+  "soc_max": 90,
+  "soc_min": 10,
+  "soc_target": 40,
+  "power_capacity": 10
+}```
+
 ## Dependencies
 
 - Python v3.12

@@ -147,8 +147,8 @@ def schedule_simple_battery(
     if len(results.solution) > 0:
         model.solutions.load_from(results)
 
-    planned_costs = value(model.costs)
-    planned_device_power = [model.ems_power[j].value for j in model.j]
+    planned_costs = float(value(model.costs))
+    planned_device_power = [float(model.ems_power[j].value) for j in model.j]
 
     return planned_costs, planned_device_power
 
