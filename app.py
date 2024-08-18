@@ -32,6 +32,7 @@ def schedule():
 
         # Return the optimization results as JSON
         return json.dumps({
+            "status": "success",
             "results": {
                 "optimal_cost": float(results[0]),
                 "optimal_power_schedule": results[1],
